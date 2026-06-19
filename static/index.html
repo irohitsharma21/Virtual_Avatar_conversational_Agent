@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time AI Avatar Voice Agent Client</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- LiveKit SDK UMD Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: rgba(31, 40, 51, 0.4);
+            --border-color: rgba(102, 252, 241, 0.2);
+            --primary: #66fcf1;
+            --primary-glow: rgba(102, 252, 241, 0.4);
+            --secondary: #45f3ff;
+            --text-main: #f5f5f5;
+            --text-muted: #c5c6c7;
+            --accent-red: #ff4a5a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(31, 40, 51, 0.5) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(102, 252, 241, 0.08) 0px, transparent 50%);
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-main) 30%, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 16px;
+            align-items: end;
+        }
+
+        @media (max-width: 600px) {
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .input-group input {
+            background: rgba(11, 12, 16, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #1f2833, #0b0c10);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            border-radius: 12px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(102, 252, 241, 0.1);
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            color: #0b0c10;
+            box-shadow: 0 0 20px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-disconnect {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            box-shadow: 0 4px 15px rgba(255, 74, 90, 0.1);
+        }
+
+        .btn-disconnect:hover {
+            background: var(--accent-red);
+            color: var(--text-main);
+            box-shadow: 0 0 20px rgba(255, 74, 90, 0.4);
+        }
+
+        .avatar-viewport {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: rgba(11, 12, 16, 0.9);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .avatar-viewport video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .placeholder-overlay {
+            position: absolute;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            transition: opacity 0.5s ease;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .pulse-ring {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(102, 252, 241, 0.1);
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: pulse 2s infinite;
+        }
+
+        .pulse-ring svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--primary);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(102, 252, 241, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 15px rgba(102, 252, 241, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(102, 252, 241, 0);
+            }
+        }
+
+        .placeholder-text {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .status-strip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(11, 12, 16, 0.6);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #c5c6c7;
+            box-shadow: 0 0 8px rgba(197, 198, 199, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .indicator-dot.active {
+            background-color: #2ecc71;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.8);
+        }
+
+        .indicator-dot.connecting {
+            background-color: #f1c40f;
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+            animation: blink 1s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .action-controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .log-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            height: 120px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-time {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Real-Time AI Avatar</h1>
+        <p>Dynamic Interactive Lip-Synced Voice Agent</p>
+    </header>
+
+    <div class="main-card">
+        <!-- Connection settings -->
+        <div class="control-grid" id="setupForm">
+            <div class="input-group">
+                <label for="roomName">Room Name</label>
+                <input type="text" id="roomName" value="avatar-room" placeholder="Enter room name">
+            </div>
+            <div class="input-group">
+                <label for="userId">Your Name/ID</label>
+                <input type="text" id="userId" value="web-client-user" placeholder="Enter your identifier">
+            </div>
+            <button id="connectBtn" class="btn" onclick="startSession()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.92z"></path></svg>
+                Connect & Speak
+            </button>
+        </div>
+
+        <!-- Avatar Viewport -->
+        <div class="avatar-viewport">
+            <div class="placeholder-overlay" id="placeholderOverlay">
+                <div class="pulse-ring" id="pulseRing">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.4z"/></svg>
+                </div>
+                <div class="placeholder-text" id="placeholderText">Connect to join the room.</div>
+            </div>
+            <!-- Dynamic Video Track will be appended here -->
+            <div id="videoContainer" style="width: 100%; height: 100%; position: relative;"></div>
+        </div>
+
+        <!-- Controls once connected -->
+        <div class="action-controls" id="sessionControls" style="display: none;">
+            <button id="micBtn" class="btn" onclick="toggleMic()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                Mute Mic
+            </button>
+            <button class="btn btn-disconnect" onclick="disconnectSession()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+                Disconnect
+            </button>
+        </div>
+
+        <!-- Connection logs and status -->
+        <div class="status-strip">
+            <div class="status-indicator">
+                <div class="indicator-dot" id="statusDot"></div>
+                <span id="statusLabel">Disconnected</span>
+            </div>
+            <div id="roomLabel" style="color: var(--primary);">Not in a room</div>
+        </div>
+
+        <div class="log-panel" id="logPanel">
+            <div class="log-entry"><span class="log-time">[System]</span><span>Client ready. Enter settings and click Connect.</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRoom = null;
+    let micEnabled = true;
+
+    function addLog(message) {
+        const panel = document.getElementById('logPanel');
+        const time = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-time">[${time}]</span><span>${message}</span>`;
+        panel.appendChild(entry);
+        panel.scrollTop = panel.scrollHeight;
+    }
+
+    function setStatus(state, label) {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusLabel');
+        
+        dot.className = 'indicator-dot';
+        if (state === 'connected') {
+            dot.classList.add('active');
+        } else if (state === 'connecting') {
+            dot.classList.add('connecting');
+        }
+        text.innerText = label;
+    }
+
+    async function startSession() {
+        const roomName = document.getElementById('roomName').value.trim();
+        const userId = document.getElementById('userId').value.trim();
+        
+        if (!roomName || !userId) {
+            alert('Please fill in both the Room Name and Your ID.');
+            return;
+        }
+
+        try {
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('connectBtn').innerText = 'Connecting...';
+            setStatus('connecting', 'Generating token...');
+            addLog(`Requesting access token for room "${roomName}"...`);
+
+            // Fetch LiveKit connection details and Token from token server
+            const response = await fetch('/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ room: roomName, identity: userId })
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Failed to generate token: ${errText}`);
+            }
+
+            const data = await response.json();
+            addLog('Token generated successfully.');
+            
+            // Connect to LiveKit Room using UMD bundle classes
+            setStatus('connecting', 'Connecting to LiveKit...');
+            addLog(`Connecting to LiveKit server at ${data.url}...`);
+
+            // Create a Room instance
+            const room = new LivekitClient.Room({
+                adaptiveStream: true,
+                dynacast: true,
+            });
+
+            currentRoom = room;
+
+            // Define track subscription handlers
+            room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                addLog(`Track subscribed: ${track.kind} from participant "${participant.identity}"`);
+                
+                if (track.kind === 'video') {
+                    // Render video stream inside container
+                    const videoEl = track.attach();
+                    videoEl.style.width = '100%';
+                    videoEl.style.height = '100%';
+                    videoEl.style.objectFit = 'cover';
+                    
+                    const container = document.getElementById('videoContainer');
+                    container.innerHTML = '';
+                    container.appendChild(videoEl);
+                    
+                    // Hide placeholder text overlay
+                    document.getElementById('placeholderOverlay').style.opacity = 0;
+                    document.getElementById('placeholderOverlay').style.pointerEvents = 'none';
+                    addLog(`Avatar video rendering started.`);
+                }
+                
+                if (track.kind === 'audio') {
+                    // Render audio playback
+                    const audioEl = track.attach();
+                    document.body.appendChild(audioEl);
+                    addLog(`Agent audio connected.`);
+                }
+            });
+
+            room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+                addLog(`Track unsubscribed: ${track.kind} from "${participant.identity}"`);
+                if (track.kind === 'video') {
+                    document.getElementById('videoContainer').innerHTML = '';
+                    document.getElementById('placeholderOverlay').style.opacity = 1;
+                    document.getElementById('placeholderOverlay').style.pointerEvents = 'auto';
+                    document.getElementById('placeholderText').innerText = 'Avatar video track removed.';
+                }
+            });
+
+            room.on(LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+                addLog(`Participant joined: "${participant.identity}"`);
+                if (participant.identity.includes('anam') || participant.identity.toLowerCase().includes('avatar')) {
+                    document.getElementById('placeholderText').innerText = 'Avatar joined. Starting stream...';
+                }
+            });
+
+            room.on(LivekitClient.RoomEvent.ParticipantDisconnected, (participant) => {
+                addLog(`Participant left: "${participant.identity}"`);
+            });
+
+            room.on(LivekitClient.RoomEvent.Disconnected, () => {
+                addLog('Disconnected from LiveKit room.');
+                resetUIState();
+            });
+
+            // Connect
+            await room.connect(data.url, data.token);
+            addLog(`Successfully joined room: ${room.name}`);
+            setStatus('connected', 'Connected');
+            document.getElementById('roomLabel').innerText = `Room: ${room.name}`;
+
+            // Show active session layout
+            document.getElementById('setupForm').style.display = 'none';
+            document.getElementById('sessionControls').style.display = 'flex';
+            document.getElementById('placeholderText').innerText = 'Waiting for avatar to join...';
+
+            // Publish local microphone track
+            addLog('Requesting microphone permissions and publishing audio track...');
+            await room.localParticipant.enableCameraAndMicrophone(false, true);
+            addLog('Local audio track successfully published to room.');
+
+        } catch (error) {
+            console.error(error);
+            addLog(`Connection error: ${error.message}`);
+            resetUIState();
+            alert(`Could not connect: ${error.message}`);
+        }
+    }
+
+    async function toggleMic() {
+        if (!currentRoom) return;
+        
+        micEnabled = !micEnabled;
+        const btn = document.getElementById('micBtn');
+        
+        await currentRoom.localParticipant.setMicrophoneEnabled(micEnabled);
+        
+        if (micEnabled) {
+            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Mute Mic`;
+            btn.style.borderColor = 'var(--primary)';
+            btn.style.color = 'var(--primary)';
+            addLog('Microphone unmuted.');
+        } else {
+            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 11a6.97 6.97 0 0 0-1.2-3.8"></path><path d="M19 10v2a7.92 7.92 0 0 1-.77 3.42M5 10v2a7 7 0 0 0 10.84 5.84"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Unmute Mic`;
+            btn.style.borderColor = 'var(--accent-red)';
+            btn.style.color = 'var(--accent-red)';
+            addLog('Microphone muted.');
+        }
+    }
+
+    async function disconnectSession() {
+        if (currentRoom) {
+            addLog('Disconnecting from session...');
+            await currentRoom.disconnect();
+        }
+    }
+
+    function resetUIState() {
+        currentRoom = null;
+        micEnabled = true;
+        
+        // Reset controls
+        const micBtn = document.getElementById('micBtn');
+        micBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Mute Mic`;
+        micBtn.style.borderColor = 'var(--primary)';
+        micBtn.style.color = 'var(--primary)';
+
+        document.getElementById('setupForm').style.display = 'grid';
+        document.getElementById('sessionControls').style.display = 'none';
+        
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('connectBtn').innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 9.92z"></path></svg> Connect & Speak`;
+        
+        document.getElementById('videoContainer').innerHTML = '';
+        document.getElementById('placeholderOverlay').style.opacity = 1;
+        document.getElementById('placeholderOverlay').style.pointerEvents = 'auto';
+        document.getElementById('placeholderText').innerText = 'Connect to join the room.';
+        
+        setStatus('disconnected', 'Disconnected');
+        document.getElementById('roomLabel').innerText = 'Not in a room';
+    }
+</script>
+
+</body>
+</html>
